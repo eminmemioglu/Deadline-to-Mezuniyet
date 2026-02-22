@@ -14,13 +14,37 @@
       <p id="dateInfo" class="date-info"></p>
     </header>
 
-    <section class="panel" aria-label="Gün kutucukları">
+    <section class="panel" aria-label="Mezuniyet ilerleme tablosu">
       <div class="panel-meta">
         <span id="todayText"></span>
         <span id="boxCountText"></span>
       </div>
 
-      <div id="daysGrid" class="days-grid"></div>
+      <div class="graph-scroll">
+        <div class="graph-layout">
+          <div class="weekdays" aria-hidden="true">
+            <span class="weekday row-1">Pzt</span>
+            <span class="weekday row-3">Çar</span>
+            <span class="weekday row-5">Cum</span>
+          </div>
+
+          <div class="graph-main">
+            <div id="monthRow" class="month-row"></div>
+            <div id="weeksGrid" class="weeks-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend" aria-hidden="true">
+        <span>Az</span>
+        <span class="legend-box dead"></span>
+        <span class="legend-box future"></span>
+        <span class="legend-box level-1"></span>
+        <span class="legend-box level-2"></span>
+        <span class="legend-box level-3"></span>
+        <span class="legend-box level-4"></span>
+        <span>Çok</span>
+      </div>
 
       <p class="hint">
         Kutuya tıkla: o gün için maddeler halinde not ekle/değiştir. Kutunun üstüne gel: notları gör.

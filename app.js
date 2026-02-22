@@ -7,7 +7,8 @@ const remainingTitle = document.getElementById("remainingTitle");
 const dateInfo = document.getElementById("dateInfo");
 const todayText = document.getElementById("todayText");
 const boxCountText = document.getElementById("boxCountText");
-const daysGrid = document.getElementById("daysGrid");
+const monthRow = document.getElementById("monthRow");
+const weeksGrid = document.getElementById("weeksGrid");
 
 const tooltip = document.getElementById("tooltip");
 const editorModal = document.getElementById("editorModal");
@@ -23,20 +24,28 @@ const trLong = new Intl.DateTimeFormat("tr-TR", {
   year: "numeric",
 });
 
+const trMonth = new Intl.DateTimeFormat("tr-TR", {
+  month: "short",
+});
+
 let notes = readNotes();
 let currentEditDateKey = null;
+let hoveredDateKey = null;
 
+const deadlineStart = toStartOfDay(DEADLINE);
 const countdownStart = getCountdownStart();
-const timeline = buildTimeline(countdownStart, toStartOfDay(DEADLINE));
+const timeline = buildDateRange(countdownStart, deadlineStart);
+const calendarWeeks = buildCalendarWeeks(countdownStart, deadlineStart);
 
 renderStatic();
-renderBoxes();
+renderCalendar();
 updateLiveState();
 
 window.setInterval(updateLiveState, 60_000);
 window.addEventListener("resize", () => {
-  if (!tooltip.classList.contains("hidden") && currentEditDateKey) {
-    positionTooltip(document.querySelector(`[data-date='${currentEditDateKey}']`));
+  if (!tooltip.classList.contains("hidden") && hoveredDateKey) {
+    const cell = weeksGrid.querySelector(`[data-date='${hoveredDateKey}']`);
+    positionTooltip(cell);
   }
 });
 
@@ -56,12 +65,60 @@ window.addEventListener("keydown", (event) => {
 
 function renderStatic() {
   dateInfo.textContent = `Hedef tarih: ${trLong.format(DEADLINE)}`;
-  boxCountText.textContent = `Toplam kutucuk: ${timeline.length}`;
+  boxCountText.textContent = `Toplam aktif kutucuk: ${timeline.length}`;
+}
+
+function renderCalendar() {
+  monthRow.innerHTML = "";
+  weeksGrid.innerHTML = "";
+
+  let lastLabeledMonth = -1;
+
+  calendarWeeks.forEach((week, weekIndex) => {
+    const label = document.createElement("span");
+    label.className = "month-label";
+
+    const labelDate = getMonthLabelDate(week, weekIndex);
+    if (labelDate && labelDate.getMonth() !== lastLabeledMonth) {
+      label.textContent = trMonth.format(labelDate);
+      lastLabeledMonth = labelDate.getMonth();
+    }
+
+    monthRow.appendChild(label);
+
+    const weekColumn = document.createElement("div");
+    weekColumn.className = "week-column";
+
+    week.forEach((item) => {
+      const box = document.createElement("button");
+      box.type = "button";
+      box.className = "day-box";
+
+      if (!item.active) {
+        box.classList.add("placeholder");
+        box.tabIndex = -1;
+      } else {
+        const dateKey = formatDateKey(item.date);
+        box.dataset.date = dateKey;
+        box.setAttribute("aria-label", `${trLong.format(item.date)} notlarını düzenle`);
+
+        box.addEventListener("mouseenter", () => showTooltip(box, item.date));
+        box.addEventListener("mouseleave", hideTooltip);
+        box.addEventListener("focus", () => showTooltip(box, item.date));
+        box.addEventListener("blur", hideTooltip);
+        box.addEventListener("click", () => openEditor(item.date));
+      }
+
+      weekColumn.appendChild(box);
+    });
+
+    weeksGrid.appendChild(weekColumn);
+  });
 }
 
 function updateLiveState() {
   const today = toStartOfDay(new Date());
-  const remaining = Math.max(0, daysBetween(today, toStartOfDay(DEADLINE)));
+  const remaining = Math.max(0, daysBetween(today, deadlineStart));
 
   if (remaining === 0) {
     remainingTitle.textContent = "Mezuniyet günü geldi!";
@@ -71,45 +128,55 @@ function updateLiveState() {
 
   todayText.textContent = `Bugün: ${trLong.format(today)}`;
 
-  const boxes = daysGrid.querySelectorAll(".day-box");
+  const boxes = weeksGrid.querySelectorAll(".day-box[data-date]");
   boxes.forEach((box) => {
-    const boxDate = parseDateKey(box.dataset.date);
-    box.classList.remove("done", "today");
+    const dateKey = box.dataset.date;
+    const date = parseDateKey(dateKey);
+    const noteCount = Array.isArray(notes[dateKey]) ? notes[dateKey].length : 0;
 
-    if (boxDate < today) {
-      box.classList.add("done");
-    } else if (isSameDay(boxDate, today)) {
+    box.classList.remove(
+      "dead",
+      "future",
+      "level-1",
+      "level-2",
+      "level-3",
+      "level-4",
+      "today"
+    );
+
+    if (noteCount > 0) {
+      box.classList.add(levelClass(noteCount));
+    } else if (date < today) {
+      box.classList.add("dead");
+    } else {
+      box.classList.add("future");
+    }
+
+    if (isSameDay(date, today)) {
       box.classList.add("today");
     }
   });
 }
 
-function renderBoxes() {
-  daysGrid.innerHTML = "";
+function getMonthLabelDate(week, weekIndex) {
+  if (weekIndex === 0) {
+    const firstActive = week.find((item) => item.active);
+    return firstActive ? firstActive.date : null;
+  }
 
-  timeline.forEach((date) => {
-    const dateKey = formatDateKey(date);
-    const box = document.createElement("button");
-    box.type = "button";
-    box.className = "day-box";
-    box.dataset.date = dateKey;
-    box.setAttribute("aria-label", `${trLong.format(date)} notlarını düzenle`);
+  const monthStart = week.find((item) => item.active && item.date.getDate() === 1);
+  return monthStart ? monthStart.date : null;
+}
 
-    if (Array.isArray(notes[dateKey]) && notes[dateKey].length > 0) {
-      box.classList.add("with-note");
-    }
-
-    box.addEventListener("mouseenter", () => showTooltip(box, date));
-    box.addEventListener("mouseleave", hideTooltip);
-    box.addEventListener("focus", () => showTooltip(box, date));
-    box.addEventListener("blur", hideTooltip);
-    box.addEventListener("click", () => openEditor(date));
-
-    daysGrid.appendChild(box);
-  });
+function levelClass(count) {
+  if (count >= 4) return "level-4";
+  if (count === 3) return "level-3";
+  if (count === 2) return "level-2";
+  return "level-1";
 }
 
 function openEditor(date) {
+  hideTooltip();
   const dateKey = formatDateKey(date);
   currentEditDateKey = dateKey;
 
@@ -144,7 +211,7 @@ function handleSave() {
   }
 
   persistNotes(notes);
-  renderBoxes();
+  renderCalendar();
   updateLiveState();
   closeEditor();
 }
@@ -154,13 +221,15 @@ function handleClear() {
 
   delete notes[currentEditDateKey];
   persistNotes(notes);
-  renderBoxes();
+  renderCalendar();
   updateLiveState();
   closeEditor();
 }
 
 function showTooltip(box, date) {
   const dateKey = formatDateKey(date);
+  hoveredDateKey = dateKey;
+
   const items = notes[dateKey] || [];
   const lines = items.length
     ? items.map((item) => `• ${item}`).join("\n")
@@ -174,6 +243,7 @@ function showTooltip(box, date) {
 }
 
 function hideTooltip() {
+  hoveredDateKey = null;
   tooltip.classList.add("hidden");
   tooltip.setAttribute("aria-hidden", "true");
 }
@@ -199,31 +269,73 @@ function positionTooltip(box) {
 
 function getCountdownStart() {
   const today = toStartOfDay(new Date());
-  const deadline = toStartOfDay(DEADLINE);
+  const safeStart = today <= deadlineStart ? today : deadlineStart;
   const stored = localStorage.getItem(START_KEY);
 
   if (stored) {
     const parsed = parseDateKey(stored);
-    if (!Number.isNaN(parsed.getTime()) && parsed <= deadline) {
+    if (!Number.isNaN(parsed.getTime()) && parsed <= deadlineStart) {
       return parsed;
     }
   }
 
-  localStorage.setItem(START_KEY, formatDateKey(today));
-  return today;
+  localStorage.setItem(START_KEY, formatDateKey(safeStart));
+  return safeStart;
 }
 
-function buildTimeline(start, end) {
-  const size = Math.max(0, daysBetween(start, end));
+function buildDateRange(start, endExclusive) {
+  const size = Math.max(0, daysBetween(start, endExclusive));
   const list = [];
 
   for (let i = 0; i < size; i += 1) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    list.push(toStartOfDay(day));
+    list.push(addDays(start, i));
   }
 
   return list;
+}
+
+function buildCalendarWeeks(activeStart, activeEndExclusive) {
+  if (activeEndExclusive <= activeStart) {
+    return [];
+  }
+
+  const gridStart = startOfWeekMonday(activeStart);
+  const lastActiveDay = addDays(activeEndExclusive, -1);
+  const gridEndExclusive = addDays(endOfWeekSunday(lastActiveDay), 1);
+
+  const allGridDays = buildDateRange(gridStart, gridEndExclusive);
+  const weeks = [];
+
+  for (let i = 0; i < allGridDays.length; i += 7) {
+    const slice = allGridDays.slice(i, i + 7).map((date) => ({
+      date,
+      active: date >= activeStart && date < activeEndExclusive,
+    }));
+
+    weeks.push(slice);
+  }
+
+  return weeks;
+}
+
+function startOfWeekMonday(date) {
+  const d = toStartOfDay(date);
+  const day = d.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  return addDays(d, mondayOffset);
+}
+
+function endOfWeekSunday(date) {
+  const d = toStartOfDay(date);
+  const day = d.getDay();
+  const sundayOffset = 7 - day;
+  return addDays(d, sundayOffset === 7 ? 0 : sundayOffset);
+}
+
+function addDays(date, amount) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + amount);
+  return toStartOfDay(d);
 }
 
 function readNotes() {
