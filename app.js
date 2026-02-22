@@ -9,6 +9,8 @@ const todayText = document.getElementById("todayText");
 const boxCountText = document.getElementById("boxCountText");
 const monthRow = document.getElementById("monthRow");
 const weeksGrid = document.getElementById("weeksGrid");
+const graphScroll = document.querySelector(".graph-scroll");
+const graphLayout = document.querySelector(".graph-layout");
 
 const tooltip = document.getElementById("tooltip");
 const editorModal = document.getElementById("editorModal");
@@ -40,9 +42,11 @@ const calendarWeeks = buildCalendarWeeks(countdownStart, deadlineStart);
 renderStatic();
 renderCalendar();
 updateLiveState();
+fitGraphToViewport();
 
 window.setInterval(updateLiveState, 60_000);
 window.addEventListener("resize", () => {
+  fitGraphToViewport();
   if (!tooltip.classList.contains("hidden") && hoveredDateKey) {
     const cell = weeksGrid.querySelector(`[data-date='${hoveredDateKey}']`);
     positionTooltip(cell);
@@ -213,6 +217,7 @@ function handleSave() {
   persistNotes(notes);
   renderCalendar();
   updateLiveState();
+  fitGraphToViewport();
   closeEditor();
 }
 
@@ -223,6 +228,7 @@ function handleClear() {
   persistNotes(notes);
   renderCalendar();
   updateLiveState();
+  fitGraphToViewport();
   closeEditor();
 }
 
@@ -267,6 +273,26 @@ function positionTooltip(box) {
   tooltip.style.left = `${left}px`;
 }
 
+function fitGraphToViewport() {
+  if (!graphScroll || !graphLayout) return;
+
+  graphLayout.style.transform = "scale(1)";
+  graphScroll.style.height = "auto";
+
+  const availableWidth = graphScroll.clientWidth;
+  const naturalWidth = graphLayout.scrollWidth;
+  const naturalHeight = graphLayout.scrollHeight;
+
+  if (!availableWidth || !naturalWidth || !naturalHeight) return;
+
+  const scale = Math.min(1, availableWidth / naturalWidth);
+  const scaledWidth = naturalWidth * scale;
+  const offsetX = Math.max(0, (availableWidth - scaledWidth) / 2);
+
+  graphLayout.style.transform = `translateX(${offsetX}px) scale(${scale})`;
+  graphScroll.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+}
+
 function getCountdownStart() {
   const today = toStartOfDay(new Date());
   const safeStart = today <= deadlineStart ? today : deadlineStart;
@@ -282,6 +308,7 @@ function getCountdownStart() {
   localStorage.setItem(START_KEY, formatDateKey(safeStart));
   return safeStart;
 }
+
 
 function buildDateRange(start, endExclusive) {
   const size = Math.max(0, daysBetween(start, endExclusive));

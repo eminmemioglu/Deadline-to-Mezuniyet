@@ -30,13 +30,19 @@ body {
 }
 
 .page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 40px 18px 48px;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 34px clamp(12px, 3vw, 32px) 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .hero {
   margin-bottom: 24px;
+  width: min(1600px, 100%);
+  text-align: center;
 }
 
 .label {
@@ -65,20 +71,26 @@ h1 {
   border-radius: 16px;
   padding: 18px;
   box-shadow: 0 14px 28px rgba(40, 27, 15, 0.08);
+  width: fit-content;
+  max-width: 100%;
 }
 
 .panel-meta {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 22px;
   margin-bottom: 14px;
   font-size: 14px;
   color: var(--muted);
+  text-align: center;
 }
 
 .graph-scroll {
-  overflow-x: auto;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   padding-bottom: 8px;
 }
 
@@ -87,6 +99,8 @@ h1 {
   align-items: flex-start;
   gap: 10px;
   min-width: max-content;
+  transform-origin: top left;
+  margin: 0 auto;
 }
 
 .weekdays {
@@ -208,6 +222,7 @@ h1 {
 .legend {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   margin-top: 14px;
   color: var(--muted);
@@ -250,6 +265,7 @@ h1 {
   margin: 12px 0 0;
   font-size: 13px;
   color: var(--muted);
+  text-align: center;
 }
 
 .tooltip {
