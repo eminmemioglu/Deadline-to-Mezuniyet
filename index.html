@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mezuniyet Geri Sayım</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="label">MEZUNİYET DEADLINE</p>
+      <h1 id="remainingTitle">Mezuniyetime kalan süre: ...</h1>
+      <p id="dateInfo" class="date-info"></p>
+    </header>
+
+    <section class="panel" aria-label="Gün kutucukları">
+      <div class="panel-meta">
+        <span id="todayText"></span>
+        <span id="boxCountText"></span>
+      </div>
+
+      <div id="daysGrid" class="days-grid"></div>
+
+      <p class="hint">
+        Kutuya tıkla: o gün için maddeler halinde not ekle/değiştir. Kutunun üstüne gel: notları gör.
+      </p>
+    </section>
+  </main>
+
+  <div id="tooltip" class="tooltip hidden" role="tooltip" aria-hidden="true"></div>
+
+  <div id="editorModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+      <h2 id="editorTitle">Gün Notu</h2>
+      <p id="editorDate" class="editor-date"></p>
+      <label class="editor-label" for="editorInput">Her satıra bir madde yaz</label>
+      <textarea id="editorInput" class="editor-input" rows="8" placeholder="- Ders çalıştım&#10;- Proje ilerlettim"></textarea>
+      <div class="modal-actions">
+        <button id="saveBtn" class="btn btn-primary" type="button">Kaydet</button>
+        <button id="clearBtn" class="btn" type="button">Notu Temizle</button>
+        <button id="cancelBtn" class="btn" type="button">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
